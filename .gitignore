@@ -1,3 +1,11 @@
+# Ignoring cache files
+cache/gog-expiration-cache.json
+output/error.log
+output/errors.log
+output/games.json
+output/info.json
+output/statistics.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
