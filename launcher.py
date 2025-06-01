@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+
+"""Script to scan for free games"""
+
+from json import dump
+from time import sleep
+import traceback
+
+from datetime import datetime
+from dataclasses import asdict
+
+from logger import setup_logger
+from config import Config
+
+# Scan functions
+from api.steam import scan as steam_scan
+from api.gog import scan as gog_scan
+from api.epicgamesV2 import scan as epicgames_scan
+
+from statistics.statistics import Statistics
+from statistics.timer import Timer
+
+logger = setup_logger(__name__)
+
+
+class Runtime:
+    def __init__(self, stats_obj: Statistics, timer_obj: Timer, arguments) -> None:
+        self.statistics = stats_obj
+        self.timer = timer_obj
+
+        self.scans = {"epicgames": epicgames_scan, "steam": steam_scan, "gog": gog_scan}
+        self.settings = Config.get_general_settings()
+
+        self.save_to_nginx = arguments.save_to_nginx
+
+    def run(self) -> None:
+
+        logger.info("Now scanning for free games...")
+
+        for _ in range(0, self.settings.error_tries):
+            try:
+                free_games, success = self.scan()
+
+                self.api_info(success)
+                self.statistics.update(free_games, success)
+                if success:
+                    self.save_games(free_games)
+                    return
+
+            except KeyboardInterrupt:
+                logger.debug("Caught KeyboardInterrupt, exiting.")
+                return
+            except Exception as e:
+                logger.error("There was an error with the api: %s", e)
+                logger.error(traceback.format_exc())
+
+            sleep(30)
+        logger.critical(
+            "There are multiple errors with the FreeGames api. Please fix instant!"
+        )
+
+    def scan(self) -> any:
+        try:
+            self.timer.start("total_duration")
+
+            free_games = []
+            for name, function in self.scans.items():
+                self.timer.start(name)
+
+                scanned_games = function()
+                free_games.extend(scanned_games)
+
+                duration = self.timer.stop(name, log=True)
+                self.statistics.dump(f"{name}_duration", duration)
+
+            total_duration = self.timer.stop("total_duration", log=True)
+            self.statistics.dump("total_duration", total_duration)
+            return free_games, True
+
+        except Exception as e:
+            logger.error("There was an error during scanning: %s", e)
+            logger.error(traceback.format_exc())
+            return [], False
+
+    def save_games(self, free_games: list[dict]) -> None:
+        """Saves the games either to nginx or output directory."""
+        if self.save_to_nginx:
+            path = "/var/www/varnholt.org/api/games.json"
+        else:
+            path = "output/games.json"
+
+        free_games_dict = [asdict(game) for game in free_games]
+
+        with open(path, "w", encoding="utf-8") as games_file:
+            dump(free_games_dict, games_file, ensure_ascii=False, indent=4)
+
+    def api_info(self, success: bool) -> None:
+        """Creates the api info."""
+
+        info = {
+            "last_scan": datetime.now().isoformat(),
+            "error": not success,
+            "message": self.settings.api_message,
+        }
+
+        if self.save_to_nginx:
+            path = "/var/www/varnholt.org/api/info.json"
+        else:
+            path = "output/info.json"
+
+        with open(path, "w", encoding="utf-8") as info_file:
+            dump(info, info_file, ensure_ascii=False, indent=4)
+
+
+if __name__ == "__main__":
+    arguments = Config.get_arguments()
+
+    general_settings = Config.get_general_settings()
+    if general_settings.enabled:
+
+        timer = Timer()
+        statistics = Statistics()
+
+        runtime = Runtime(statistics, timer, arguments)
+        runtime.run()
+
+    else:
+        logger.info("The FreeGames API has not been enabled.")
