@@ -6,6 +6,7 @@ output/games.json
 output/info.json
 output/statistics.json
 config.ini
+run.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
