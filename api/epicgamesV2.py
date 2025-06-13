@@ -1,5 +1,6 @@
 """File to get all free games from Epicgames with all their data"""
 
+from urllib.parse import quote
 from json import loads
 import requests
 
@@ -46,14 +47,19 @@ class Epicgames:
     @staticmethod
     def create_game_link(game_info: dict) -> str:
         """Creates a game link from the game slug."""
+        base_url = "https://store.epicgames.com/en-UK/p/"
+
         if game_info["productSlug"]:
-            return "https://store.epicgames.com/en-UK/p/" + game_info["productSlug"]
-        if game_info["offerMappings"][0]["pageSlug"]:
+            return base_url + game_info["productSlug"]
+        if game_info["offerMappings"] and game_info["offerMappings"][0]["pageSlug"]:
             return (
-                "https://store.epicgames.com/en-UK/p/"
+                base_url
                 + game_info["offerMappings"][0]["pageSlug"]
             )
-        return "No link found..."
+
+        title = game_info["title"]
+        slug = title.lower().replace(" ", "-")
+        return base_url + quote(slug)
 
     @staticmethod
     def get_game_picture(game_info: dict) -> str:
