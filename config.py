@@ -10,12 +10,15 @@ from dataclasses import dataclass
 class GeneralSettings:
     enabled: bool
     error_tries: int
+    public_games: bool
+    public_info: bool
     api_message: str
 
 @dataclass
 class DestinationSettings:
     output_folder: Path
     public_output_folder: Path
+    cache_folder: Path
 
 @dataclass
 class NtfySettings:
@@ -26,6 +29,7 @@ class NtfySettings:
 class StatisticsSettings:
     update_statistics: bool
     public_statistics: bool
+
 
 class Config:
     @staticmethod
@@ -41,6 +45,7 @@ class Config:
         return DestinationSettings(
             output_folder=Path(config["destinations"]["output_folder"]),
             public_output_folder=Path(config["destinations"]["public_output_folder"]),
+            cache_folder=Path(config["destinations"]["cache_folder"]),
         )
 
     @staticmethod
@@ -67,6 +72,8 @@ class Config:
         return GeneralSettings(
             enabled=config["general"]["enabled"].lower() == "true",
             error_tries=int(config["general"]["error_tries"]),
+            public_games=bool(config["general"]["public_games"].lower() == "true"),
+            public_info=bool(config["general"]["public_info"].lower() == "true"),
             api_message=config["general"]["api_message"],
         )
 

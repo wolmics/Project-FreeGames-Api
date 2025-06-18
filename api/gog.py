@@ -1,13 +1,12 @@
 """Files to get all free games from gog."""
 
 from datetime import datetime, timedelta
-import json
+from json import loads, dumps
 from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 
+from config import Config
 from structures import Game
-
-CACHE_FILE = "cache/gog-expiration-cache.json"
 
 
 class Gog:
@@ -83,7 +82,7 @@ class Gog:
             "https://www.gog.com/games/ajax/filtered?mediaType=game&sort=popularity&page=1&search="
             + game_slug
         )
-        return json.loads(response)
+        return loads(response)
 
     @staticmethod
     def get_normal_price(response: dict) -> str:
@@ -107,9 +106,9 @@ class Gog:
     @staticmethod
     def expiration_cache() -> str:
         """For purpose of starting the 72-hour countdown for the expiration."""
+        cache_file = Config.get_destinations().cache_folder / "gog.json"
 
-        with open(CACHE_FILE, "r", encoding="utf-8") as file:
-            content = json.load(file)
+        content = loads(cache_file.read_text(encoding="utf-8"))
 
         if content.get("expiration"):
             return content.get("expiration")
@@ -117,17 +116,15 @@ class Gog:
         end_date = datetime.now() + timedelta(days=3)
         dict_end_date = {"expiration": end_date.strftime("%d.%m.%Y")}
 
-        with open(CACHE_FILE, "w", encoding="utf-8") as file:
-            json.dump(dict_end_date, file, indent=4)
+        cache_file.write_text(dumps(dict_end_date, indent=4), encoding="utf-8")
 
         return end_date.strftime("%d.%m.%Y")
 
     @staticmethod
     def clear_expiration() -> None:
         """Clearing cache."""
-
-        with open(CACHE_FILE, "w", encoding="utf-8") as file:
-            json.dump({}, file, indent=4)
+        cache_file = Config.get_destinations().cache_folder / "gog.json"
+        cache_file.write_text(dumps({}), encoding="utf-8")
 
 
 def scan() -> list[Game]:

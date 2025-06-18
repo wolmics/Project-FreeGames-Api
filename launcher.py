@@ -2,7 +2,7 @@
 
 """Script to scan for free games"""
 
-from json import dump
+from json import dumps
 from time import sleep
 import traceback
 
@@ -84,15 +84,14 @@ class Runtime:
 
     def save_games(self, free_games: list[dict]) -> None:
         """Saves the games either to nginx or output directory."""
-        if self.save_to_nginx:
-            path = "/var/www/varnholt.org/api/games.json"
-        else:
-            path = "output/games.json"
-
         free_games_dict = [asdict(game) for game in free_games]
 
-        with open(path, "w", encoding="utf-8") as games_file:
-            dump(free_games_dict, games_file, ensure_ascii=False, indent=4)
+        private_path = Config.get_destinations().output_folder / "games.json"
+        private_path.write_text(dumps(free_games_dict, indent=4))
+
+        if Config.get_general_settings().public_games:
+            public_path = Config.get_destinations().public_output_folder / "games.json"
+            public_path.write_text(dumps(free_games_dict, indent=4))
 
     def api_info(self, success: bool) -> None:
         """Creates the api info."""
@@ -103,13 +102,13 @@ class Runtime:
             "message": self.settings.api_message,
         }
 
-        if self.save_to_nginx:
-            path = "/var/www/varnholt.org/api/info.json"
-        else:
-            path = "output/info.json"
+        private_path = Config.get_destinations().output_folder / "info.json"
+        private_path.write_text(dumps(info, indent=4))
 
-        with open(path, "w", encoding="utf-8") as info_file:
-            dump(info, info_file, ensure_ascii=False, indent=4)
+        if Config.get_general_settings().public_info:
+            public_path = Config.get_destinations().public_output_folder / "info.json"
+            public_path.write_text(dumps(info, indent=4))
+
 
 
 if __name__ == "__main__":

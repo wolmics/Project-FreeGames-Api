@@ -1,5 +1,5 @@
 # Ignoring cache files
-cache/gog-expiration-cache.json
+cache/gog.json
 output/error.log
 output/errors.log
 output/games.json
