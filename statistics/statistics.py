@@ -1,7 +1,6 @@
 """Class to make statistics out of scanned free games"""
 
-from json import dump, load
-from os import path
+from json import dumps, loads
 
 from structures import Game
 
@@ -19,7 +18,7 @@ class Statistics:
         """Sets up path"""
         self.stats = {}
         self.stats_dump = {}
-        self.statistic_file = "output/statistics.json"
+        self.statistic_file = Config.get_destinations().output_folder / "statistics.json"
         self.timer = timer.Timer()
 
     def create_statistic_file(self) -> None:
@@ -60,24 +59,31 @@ class Statistics:
             ],
             "all_games": [],
         }
-        with open(self.statistic_file, "w", encoding="utf-8") as stat_file:
-            dump(data_structure, stat_file, indent=4)
+        self.statistic_file.touch(exist_ok=True)
+        self.statistic_file.write_text(dumps(data_structure, indent=4))
 
     def read_statistic_file(self) -> dict:
         """Check if file exists, else create one. Then read it."""
-        if not path.exists(self.statistic_file):
+        if self.statistic_file.exists():
             self.create_statistic_file()
 
-        with open(self.statistic_file, "r", encoding="utf-8") as stat_file:
-            data = load(stat_file)
+        data = loads(self.statistic_file.read_text(encoding="utf-8"))
+
         data["all_games"] = set(data["all_games"])
         return data
 
     def write(self) -> None:
         """Replaces set with list, and saves."""
         self.stats["all_games"] = list(self.stats["all_games"])
-        with open(self.statistic_file, "w", encoding="utf-8") as stat_file:
-            dump(self.stats, stat_file, indent=4)
+
+        self.statistic_file.write_text(dumps(self.stats, indent=4), encoding="utf-8")
+
+        if Config.get_statistics().public_statistics:
+            file_path = Config.get_destinations().public_output_folder / "statistics.json"
+            file_path.write_text(
+                dumps(self.stats, indent=4),
+                encoding="utf-8"
+            )
 
     def dump(self, key: str, value: float) -> None:
         """Dumps data into a dictionarry."""
