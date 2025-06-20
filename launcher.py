@@ -6,32 +6,30 @@ from json import dumps
 from time import sleep
 import traceback
 
-from datetime import datetime
 from dataclasses import asdict
 
 from logger import setup_logger
 from config import Config
 
-# Scan functions
 from api.steam import scan as steam_scan
 from api.gog import scan as gog_scan
 from api.epicgamesV2 import scan as epicgames_scan
 
 from statistics.statistics import Statistics
 from statistics.timer import Timer
+from statistics.status import StatusManager
 
 logger = setup_logger(__name__)
 
 
 class Runtime:
-    def __init__(self, stats_obj: Statistics, timer_obj: Timer, arguments) -> None:
+    def __init__(self, stats_obj: Statistics, timer_obj: Timer, status_manager_obj: StatusManager) -> None:
         self.statistics = stats_obj
         self.timer = timer_obj
+        self.status_manager = status_manager_obj
 
         self.scans = {"epicgames": epicgames_scan, "steam": steam_scan, "gog": gog_scan}
         self.settings = Config.get_general_settings()
-
-        self.save_to_nginx = arguments.save_to_nginx
 
     def run(self) -> None:
 
@@ -41,7 +39,7 @@ class Runtime:
             try:
                 free_games, success = self.scan()
 
-                self.api_info(success)
+                self.status_manager.after_run(success)
                 self.statistics.update(free_games, success)
                 if success:
                     self.save_games(free_games)
@@ -93,26 +91,16 @@ class Runtime:
             public_path = Config.get_destinations().public_output_folder / "games.json"
             public_path.write_text(dumps(free_games_dict, indent=4))
 
-    def api_info(self, success: bool) -> None:
-        """Creates the api info."""
-
-        info = {
-            "last_scan": datetime.now().isoformat(),
-            "error": not success,
-            "message": self.settings.api_message,
-        }
-
-        private_path = Config.get_destinations().output_folder / "info.json"
-        private_path.write_text(dumps(info, indent=4))
-
-        if Config.get_general_settings().public_info:
-            public_path = Config.get_destinations().public_output_folder / "info.json"
-            public_path.write_text(dumps(info, indent=4))
-
-
 
 if __name__ == "__main__":
     arguments = Config.get_arguments()
+
+
+    status_manager = StatusManager()
+
+    if arguments.set_message:
+        status_manager.new_message(arguments.set_message)
+
 
     general_settings = Config.get_general_settings()
     if general_settings.enabled:
@@ -120,8 +108,10 @@ if __name__ == "__main__":
         timer = Timer()
         statistics = Statistics()
 
-        runtime = Runtime(statistics, timer, arguments)
+        runtime = Runtime(statistics, timer, status_manager)
         runtime.run()
 
     else:
         logger.info("The FreeGames API has not been enabled.")
+
+    exit(0)

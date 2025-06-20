@@ -84,9 +84,8 @@ class Config:
         )
 
         parser.add_argument(
-            "--save-to-nginx",
-            action="store_true",
-            help="Saves the output file to nginx directory.",
+            "--set-message",
+            help="Sets the message to be displayed to the user.",
         )
 
         return parser.parse_args()
