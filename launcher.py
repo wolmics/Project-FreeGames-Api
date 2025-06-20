@@ -100,6 +100,7 @@ if __name__ == "__main__":
 
     if arguments.set_message:
         status_manager.new_message(arguments.set_message)
+        exit(0)
 
 
     general_settings = Config.get_general_settings()

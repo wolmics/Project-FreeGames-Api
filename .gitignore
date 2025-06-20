@@ -3,7 +3,7 @@ cache/gog.json
 output/error.log
 output/errors.log
 output/games.json
-output/info.json
+output/status.json
 output/statistics.json
 config.ini
 run.sh
