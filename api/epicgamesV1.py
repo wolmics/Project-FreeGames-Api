@@ -74,7 +74,8 @@ class Filters:
     @staticmethod
     def valid_slug(data_found: dict) -> bool:
         """A filter to check if the slug is valid, fixes weird bug where slug is empty."""
-        slug = data_found["productSlug"] or data_found["pageSlug"]
+        print(data_found)
+        slug = data_found.get("productSlug", None) or data_found.get("pageSlug", None)
         return True if slug and slug != "[]" else False
 
 
