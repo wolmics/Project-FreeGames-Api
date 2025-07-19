@@ -58,6 +58,7 @@ class Filters:
         return (
             data_found["offerType"] == "OTHERS"
             or data_found["offerType"] == "BASE_GAME"
+            or data_found["offerType"] == "EDITION"
         )
 
     @staticmethod
