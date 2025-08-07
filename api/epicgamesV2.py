@@ -24,18 +24,23 @@ class Epicgames:
 
     def make_query(self, query: str) -> dict:
         """Makes a request to Epicgames graphql api."""
-        return self.session.post(GRAPHQL_BASE, json={"query": query}).json()
+        req = self.session.post(GRAPHQL_BASE, json={"query": query})
+        if req.status_code == 200:
+            return req.json()
+        return {}
 
     def is_game_valid(self, title: str) -> bool:
         """Checks if the normal price isn't 0 and the current price is 0."""
         price = self.make_query(EpicgamesGraphql.get_price.format(game=title))
-        explicit_prices = price["data"]["Catalog"]["searchStore"]["elements"][0][
-            "price"
-        ]["totalPrice"]
-        return (
-            explicit_prices["originalPrice"] != 0
-            and explicit_prices["discountPrice"] == 0
-        )
+        if price:
+            explicit_prices = price["data"]["Catalog"]["searchStore"]["elements"][0][
+                "price"
+            ]["totalPrice"]
+            return (
+                explicit_prices["originalPrice"] != 0
+                and explicit_prices["discountPrice"] == 0
+            )
+        return False
 
     def get_game_info(self, title: str) -> dict:
         """Makes a query to Epicgames graphql api and gets the raw data for a game."""

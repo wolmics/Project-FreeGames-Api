@@ -58,6 +58,7 @@ class Filters:
         return (
             data_found["offerType"] == "OTHERS"
             or data_found["offerType"] == "BASE_GAME"
+            or data_found["offerType"] == "EDITION"
         )
 
     @staticmethod
@@ -74,7 +75,12 @@ class Filters:
     @staticmethod
     def valid_slug(data_found: dict) -> bool:
         """A filter to check if the slug is valid, fixes weird bug where slug is empty."""
+<<<<<<< HEAD
         slug = data_found.get("productSlug", "") or data_found.get("pageSlug", "")
+=======
+        print(data_found)
+        slug = data_found.get("productSlug", None) or data_found.get("pageSlug", None)
+>>>>>>> b5b08965afedc9f1750567827210cd1dff988e49
         return True if slug and slug != "[]" else False
 
 

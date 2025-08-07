@@ -13,7 +13,7 @@ from config import Config
 
 from api.steam import scan as steam_scan
 from api.gog import scan as gog_scan
-from api.epicgamesV2 import scan as epicgames_scan
+from api.epicgamesV1 import scan as epicgames_scan
 
 from statistics.statistics import Statistics
 from statistics.timer import Timer
