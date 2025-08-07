@@ -1,10 +1,9 @@
 # Ignoring cache files
-cache/gog.json
-output/error.log
-output/errors.log
-output/games.json
-output/status.json
-output/statistics.json
+cache/*.json
+output/*.json
+output/*.log
+output/public/*.json
+
 config.ini
 run.sh
 
