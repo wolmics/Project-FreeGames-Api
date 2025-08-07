@@ -1,5 +1,6 @@
 """Function to create a module wide logger with ntfy error handling."""
 
+from os import makedirs
 import logging
 import requests
 from config import Config
@@ -57,9 +58,13 @@ def setup_logger(name: str) -> logging.Logger:
         logger.addHandler(ntfy_handler)
 
         # File handler (WARNING and above)
-        file_handler = logging.FileHandler("output/error.log")
+        log_folder = Config.get_destinations().output_folder
+
+        makedirs(log_folder, exist_ok=True)
+        file_handler = logging.FileHandler(log_folder / "error.log")
         file_handler.setLevel(logging.WARNING)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
     return logger
+8

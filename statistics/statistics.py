@@ -19,6 +19,7 @@ class Statistics:
         self.stats = {}
         self.stats_dump = {}
         self.statistic_file = Config.get_destinations().output_folder / "statistics.json"
+        self.statistic_file.touch(exist_ok=True)
         self.timer = timer.Timer()
 
     def create_statistic_file(self) -> None:

@@ -1,5 +1,6 @@
 """A class to manage the status of FreeGames Api"""
 
+from os import makedirs
 from json import loads, dumps
 from pathlib import Path
 from dataclasses import dataclass, asdict
@@ -17,9 +18,11 @@ class Status:
 class StatusManager:
     """Manages the status of FreeGames Api"""
     def __init__(self):
+        makedirs(Config.get_destinations().output_folder, exist_ok=True)
         self.public = Config.get_general_settings().public_info
         self.output = Config.get_destinations().output_folder / 'status.json'
         if self.public:
+            makedirs(Config.get_destinations().public_output_folder, exist_ok=True)
             self.public_output = Config.get_destinations().public_output_folder / 'status.json'
 
     def load(self) -> Status:
