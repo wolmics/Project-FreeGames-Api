@@ -2,11 +2,11 @@
 
 from urllib.parse import quote
 from json import loads
-import requests
+import cloudscraper
 
 from structures import Game, EpicgamesGraphql
 
-GRAPHQL_BASE = "https://graphql.epicgames.com/graphql"
+GRAPHQL_BASE = "https://store.epicgames.com/graphql"
 OFFER_URL = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=en-US&country=DE&allowCountries=DE"
 
 
@@ -15,7 +15,7 @@ class Epicgames:
 
     def __init__(self):
         """Creates a session"""
-        self.session = requests.Session()
+        self.session = cloudscraper.create_scraper()
 
     def fetch_url(self, url: str) -> dict:
         """Fetches a page"""
