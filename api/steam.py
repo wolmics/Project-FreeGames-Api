@@ -132,7 +132,7 @@ class Steam:
         for wrapper in wrappers:
             price_tag = wrapper.find("div", class_="discount_original_price")
             if price_tag and price_tag.text.strip():
-                return price_tag.text.replace(",", ".").strip()
+                return price_tag.text.replace(",", ".").replace("-", "0").strip()
 
         return ""
 
