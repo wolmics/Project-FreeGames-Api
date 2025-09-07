@@ -65,8 +65,11 @@ class Runtime:
             for name, function in self.scans.items():
                 self.timer.start(name)
 
-                scanned_games = function()
-                free_games.extend(scanned_games)
+                try:
+                    scanned_games = function()
+                    free_games.extend(scanned_games)
+                except Exception as e:
+                    logger.error("There was an error with the api : %s", e)
 
                 duration = self.timer.stop(name, log=True)
                 self.statistics.dump(f"{name}_duration", duration)
