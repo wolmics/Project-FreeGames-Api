@@ -32,11 +32,11 @@ class Steam:
                 link = item.get("href")
 
                 game_page = Steam.create_soup(link)
-                if "This content requires the base game" in str(
-                    game_page.find(
-                        "div", class_="game_area_bubble game_area_dlc_bubble"
-                    )
-                ):
+
+                dlc_bubble = game_page.find("div", class_="game_area_bubble game_area_dlc_bubble")
+                soundtrack_bubble = game_page.find("div", class_="game_area_bubble game_area_soundtrack_bubble")
+
+                if any(phrase in str(bubble) for bubble, phrase in [(dlc_bubble, "This content requires the base game"), (soundtrack_bubble, "but does not include the base game"), ]):
                     continue
 
                 description = game_page.find(
