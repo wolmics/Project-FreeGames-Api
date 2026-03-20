@@ -1,0 +1,24 @@
+[general]
+enabled = true
+
+error_tries = 3
+
+public_games = True
+public_info = True
+
+api_message = "Hello from the api!"
+
+[destinations]
+# You will need to setup the public output folder, for example for nginx, to make the api public.
+output_folder = ./output/
+public_output_folder = ./output/public/
+cache_folder = ./cache/
+
+[statistics]
+update_statistics = True
+public_statistics = True
+
+[ntfy]
+url =
+token =
+
