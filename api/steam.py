@@ -1,147 +1,122 @@
-"""A script to get all discounted free games on steam"""
+import json
+from datetime import datetime, timezone
 
-from urllib.request import urlopen
-from datetime import datetime
-from bs4 import BeautifulSoup
+import requests
 
 from structures import Game
 
 
 class Steam:
-    """Main class to get discounted free games"""
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+                )
+            }
+        )
 
-    @staticmethod
-    def create_soup(url: str) -> BeautifulSoup:
-        """Opens a site and returns BeautifulSoup object"""
-        with urlopen(url) as response:
-            return BeautifulSoup(response.read(), "html.parser")
+    def _get(self, url, params=None):
+        return self.session.get(url, params=params)
 
-    @staticmethod
-    def soup(steam_url: str) -> list[Game]:
-        """Main function to get all discounted free games"""
+    def get_free_games(self, country_code: str = "DE") -> list[Game]:
+        """Returns a list of free (100%-off / free-to-keep) games from Steam."""
+        app_ids = self.get_game_ids()
+        if not app_ids:
+            return []
+
+        items = self.get_store_items(app_ids, country_code=country_code)
+
         games = []
+        for item in items:
+            # type 0 == k_EStoreAppType_Game
+            if item.get("type") != 0 or not item.get("is_free", False):
+                continue
 
-        steam_site = Steam.create_soup(steam_url)
+            appid = item.get("appid")
+            basic_info = item.get("basic_info", {})
+            assets = item.get("assets", {})
+            purchase_option = item.get("best_purchase_option", {})
 
-        results = steam_site.find(id="search_results")
-        game_items = results.find_all("a")
+            title = item.get("name")
+            description = basic_info.get("short_description")
+            link = f"https://store.steampowered.com/app/{appid}"
+            image = f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/{assets.get('header_2x')}"
+            normal_price = purchase_option.get("formatted_original_price")
+            expiration = self.get_expiration(purchase_option)
 
-        for item in game_items:
-            if item.find("div", class_="discount_final_price").text == "0,00€":
-                name = item.find("span", class_="title").text
-                link = item.get("href")
-
-                game_page = Steam.create_soup(link)
-
-                dlc_bubble = game_page.find("div", class_="game_area_bubble game_area_dlc_bubble")
-                soundtrack_bubble = game_page.find("div", class_="game_area_bubble game_area_soundtrack_bubble")
-
-                if any(phrase in str(bubble) for bubble, phrase in [(dlc_bubble, "This content requires the base game"), (soundtrack_bubble, "but does not include the base game"), ]):
-                    continue
-
-                description = game_page.find(
-                    "div", class_="game_description_snippet"
-                ).text.strip()
-                normal_price = Steam.get_original_price(game_page)
-
-                image = game_page.find("img", class_="game_header_image_full").get(
-                    "src"
-                )
-                expiration = Steam.get_expiration(game_page)
-
-                games.append(
-                    Game(
-                        name,
-                        description,
-                        link,
-                        image,
-                        expiration,
-                        normal_price,
-                        "steam",
-                    )
-                )
+            games.append(
+                Game(title, description, link, image, expiration, normal_price, "steam")
+            )
 
         return games
 
-    @staticmethod
-    def get_expiration(game_page: BeautifulSoup) -> str:
-        """Gets the game expiration date and formats it"""
-        expiration = game_page.find("p", class_="game_purchase_discount_quantity").text
-        trimmed_expiration = Steam.trim_date(expiration)
+    def get_game_ids(self) -> list[str]:
+        """Fetches app IDs of currently free-on-sale games from the store search."""
+        app_ids = []
 
-        day = Steam.get_day(trimmed_expiration)
-        month = Steam.transform_month(trimmed_expiration[1])
-        year = Steam.check_year(int(day), int(month))
+        resp = self._get(
+            "https://store.steampowered.com/search/results/",
+            params={
+                "sort_by": "_ASC",
+                "maxprice": "free",
+                "supportedlang": "english",
+                "specials": 1,
+                "json": 1,
+            },
+        ).json()
 
-        return str(day) + "." + str(month) + "." + str(year)
+        for entry in resp.get("items", []):
+            logo = entry.get("logo", "")
+            if "/apps/" in logo:
+                app_ids.append(logo.split("/apps/")[1].split("/")[0])
 
-    @staticmethod
-    def trim_date(expiration: str) -> list[str]:
-        """Trims the expiration date out of the text"""
-        expiration = expiration.split(" ")
+        return app_ids
 
-        tmp_index1, tmp_index2 = 0, 0
-
-        # Gets the first index of the list which is a number (The date) and the last index (@)
-        for i in expiration:
-            if i.isnumeric():
-                tmp_index1 = expiration.index(i)
-            elif i == "@":
-                tmp_index2 = expiration.index(i)
-
-        return expiration[tmp_index1:tmp_index2]
-
-    @staticmethod
-    def get_day(expiration: list[str]) -> str:
-        """Gets the day of the expiration"""
-        if len(expiration[0]) == 1:
-            return "0" + expiration[0]
-        return expiration[0]
-
-    @staticmethod
-    def transform_month(month: str) -> int:
-        """Transforms the month to a number."""
-        months = {
-            "jan": "01",
-            "feb": "02",
-            "mar": "03",
-            "apr": "04",
-            "may": "05",
-            "jun": "06",
-            "jul": "07",
-            "aug": "08",
-            "sep": "09",
-            "oct": "10",
-            "nov": "11",
-            "dec": "12",
+    def get_store_items(self, app_ids: list[str], country_code: str = "DE") -> list[dict]:
+        """Fetches store data (name, description, header image, price, active discounts, free-to-keep window)"""
+        payload = {
+            "ids": [{"appid": int(app_id)} for app_id in app_ids],
+            "context": {
+                "language": "english",
+                "country_code": country_code,
+                "steam_realm": 1,
+            },
+            "data_request": {
+                "include_basic_info": True,
+                "include_assets": True,
+                "include_all_purchase_options": True,
+            },
         }
-        return int(months.get(month.lower()))
+
+        resp = self._get(
+            "https://api.steampowered.com/IStoreBrowseService/GetItems/v1/",
+            params={"input_json": json.dumps(payload)},
+        ).json()
+
+        return resp.get("response", {}).get("store_items", [])
 
     @staticmethod
-    def check_year(day: int, month: int) -> datetime.today:
-        """Checks if the expiration is in the next year or not."""
-        today = datetime.today()
-        expiration_date_this_year = datetime(today.year, month, day)
-        return today.year if today <= expiration_date_this_year else today.year + 1
+    def get_expiration(purchase_option: dict) -> str | None:
+        """ Expiration date in ISO 8601 format """
+        timestamp = purchase_option.get("free_to_keep_ends")
+        if not timestamp:
+            discounts = purchase_option.get("active_discounts") or []
+            if discounts:
+                timestamp = discounts[0].get("discount_end_date")
+        if not timestamp:
+            return None
 
-    @staticmethod
-    def get_original_price(game_page: BeautifulSoup) -> str:
-        """Return the original price of the game from the game page."""
-        wrappers = game_page.find_all("div", class_="game_area_purchase_game_wrapper")
-
-        for wrapper in wrappers:
-            price_tag = wrapper.find("div", class_="discount_original_price")
-            if price_tag and price_tag.text.strip():
-                return price_tag.text.replace(",", ".").replace("-", "0").strip()
-
-        return ""
+        dt_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        # ISO 8601, unambiguous, sortable, carries the UTC offset
+        return dt_utc.isoformat()
 
 
-def scan() -> list[Game]:
-    """Returns a list of Game objects."""
-    return Steam.soup(
-        "https://store.steampowered.com/search/?maxprice=free&specials=1&ndl=1"
-    )
+def scan():
+    s = Steam()
+    return s.get_free_games()
 
 
 if __name__ == "__main__":

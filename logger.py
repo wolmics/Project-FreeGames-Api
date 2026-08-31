@@ -13,8 +13,10 @@ class NtfyHandler(logging.Handler):
         super().__init__()
         ntfy_config = Config.get_ntfy()
 
-        self.topic_url = ntfy_config.url
-        self.token = ntfy_config.token
+        self.topic_url: str = ntfy_config.url
+        self.token: str = ntfy_config.token
+
+        self.enabled: bool = ntfy_config.url != ""
 
     def emit(self, record):
         log_entry = self.format(record)
@@ -53,9 +55,10 @@ def setup_logger(name: str) -> logging.Logger:
 
         # Ntfy handler (ERROR and above)
         ntfy_handler = NtfyHandler()
-        ntfy_handler.setLevel(logging.ERROR)
-        ntfy_handler.setFormatter(formatter)
-        logger.addHandler(ntfy_handler)
+        if ntfy_handler.enabled:
+            ntfy_handler.setLevel(logging.ERROR)
+            ntfy_handler.setFormatter(formatter)
+            logger.addHandler(ntfy_handler)
 
         # File handler (WARNING and above)
         log_folder = Config.get_destinations().output_folder

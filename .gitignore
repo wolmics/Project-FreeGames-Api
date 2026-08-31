@@ -3,6 +3,8 @@ cache/*.json
 output/*.json
 output/*.log
 output/public/*.json
+output/
+cache/
 
 config.ini
 run.sh

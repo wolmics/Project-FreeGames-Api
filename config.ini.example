@@ -6,7 +6,7 @@ error_tries = 3
 public_games = True
 public_info = True
 
-api_message = "Hello from the api!"
+api_message = ""
 
 [destinations]
 # You will need to setup the public output folder, for example for nginx, to make the api public.
