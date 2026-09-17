@@ -43,7 +43,7 @@ class Steam:
             title = item.get("name")
             description = basic_info.get("short_description")
             link = f"https://store.steampowered.com/app/{appid}"
-            image = f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/{assets.get('header_2x')}"
+            image = self.resolve_header_image(appid, assets)
             normal_price = purchase_option.get("formatted_original_price").replace(",", ".")
             expiration = self.get_expiration(purchase_option)
 
@@ -113,6 +113,21 @@ class Steam:
         # ISO 8601, unambiguous, sortable, carries the UTC offset
         return dt_utc.isoformat()
 
+    @staticmethod
+    def resolve_header_image(appid, assets):
+        """ Resolve the header image for an app id for best match"""
+        candidates = [
+            assets.get("header_2x"),
+            assets.get("main_capsule"),
+            assets.get("library_header_2x"),
+            assets.get("library_header"),
+            assets.get("header"),
+        ]
+
+        for filename in candidates:
+            if filename:
+                return f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/{filename}"
+        return None
 
 def scan():
     s = Steam()
