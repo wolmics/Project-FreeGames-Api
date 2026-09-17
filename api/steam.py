@@ -44,7 +44,7 @@ class Steam:
             description = basic_info.get("short_description")
             link = f"https://store.steampowered.com/app/{appid}"
             image = f"https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/{appid}/{assets.get('header_2x')}"
-            normal_price = purchase_option.get("formatted_original_price")
+            normal_price = purchase_option.get("formatted_original_price").replace(",", ".")
             expiration = self.get_expiration(purchase_option)
 
             games.append(
